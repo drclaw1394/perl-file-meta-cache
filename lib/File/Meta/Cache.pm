@@ -21,7 +21,7 @@ use POSIX();
 
 field $_sweep_size;
 
-field $_no_fh;
+field $_no_fh :param =undef;
 field $_enabled;
 field $_sweeper;
 field %_cache;
@@ -93,6 +93,7 @@ method opener{
             $existing_entry->[stat_]->@*=@stat;
           }
           else {
+            # Only create a file handle if its enabled
             open($entry[fh_], "+<&=$in_fd") unless($_no_fh);
 
             $entry[stat_]=\@stat;
@@ -139,7 +140,8 @@ method closer {
         if($actual){
           # Attempt to close only if the entry exists
           $actual->[valid_]=0;  #Mark as invalid
-          POSIX::close($actual->[fh_]);
+          POSIX::close($actual->[fd_]);
+          $actual->[fh_]=undef;
         }
         else {
           die "Entry does not exist";
