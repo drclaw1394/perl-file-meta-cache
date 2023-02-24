@@ -3,8 +3,7 @@ use warnings;
 package File::Meta::Cache;
 our $VERSION="v0.1.0";
 # Default Opening Mode
-use Fcntl qw(O_NONBLOCK O_RDONLY);
-use constant OPEN_MODE=>O_RDONLY|O_NONBLOCK;
+use Fcntl qw(O_RDONLY);
 use enum qw<key_ fd_ fh_ stat_ valid_ user_>;
 
 use Object::Pad;
