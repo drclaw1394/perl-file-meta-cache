@@ -4,14 +4,14 @@ use ExtUtils::MakeMaker;
 # the contents of the Makefile that is written.
 WriteMakefile(
   NAME              => 'File::Meta::Cache',
-  VERSION_FROM      => 'lib/File/Meta/Cache.pm', # finds $VERSION, requires EU::MM from perl >= 5.5
+  VERSION_FROM      => 'lib/File/Meta/Cache.pm', 
   PREREQ_PM         => {
     enum=>0,
     "Object::Pad"=>0,
     "Log::OK"=>0,
     "Log::ger"=>0
   }, 
-  ABSTRACT_FROM     => 'lib/File/Meta/Cache.pm', # retrieve abstract from module
+  ABSTRACT_FROM     => 'lib/File/Meta/Cache.pod', 
   AUTHOR            => 'Ruben Westerberg <drclaw@local>',
   LICENSE           => 'mit',
   META_ADD => {

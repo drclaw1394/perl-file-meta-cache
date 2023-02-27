@@ -1,5 +1,5 @@
 NAME
-    File::Meta::Cache - Cache open file descriptors and meta data
+    File::Meta::Cache - Cache open file descriptors and stat meta data
 
 SYNOPSIS
       use File::Meta::Cache;
@@ -7,10 +7,20 @@ SYNOPSIS
       #
       my $cache=File::Meta::Cache->new;
   
-
-      # open a file and get cache entry.
+        ###
+    
+      # OO Interface for opening:
       #
       my $entry=$cache->open("path to file");
+
+      #         OR
+  
+      # High performance API for opening
+      #
+      my $opener=$cache->opener; 
+      my $entry=$opener->("path to file");
+  
+        ###
 
       if($entry and $entry->[File::Meta::Cache::valid_]){
         # Work with the file
@@ -22,7 +32,8 @@ SYNOPSIS
 
         # Set user defined data in entry if no already defined
         #
-        $entry->[File::Meta::Cache::user_]=//[
+        $entry->[File::Meta::Cache::user_]=//
+        [
           "Content-Length: $entry->[File::Meta::Cache::stat_][7],
         ];
       }
@@ -33,26 +44,29 @@ SYNOPSIS
       }
 
 DESCRIPTION
-    Implements a caching mechanism to reuse open file meta data when
-    'opening' a file multiple times.
+    Implements a caching mechanism to reuse a open handle/descriptor and
+    meta data when 'opening' a file multiple times.
 
     This is especially useful in a programs such as web servers which
     typically access the same static file multiple times in response to
     requests. Not having to open the file repeatedly can significantly
     reduce processing time. It also reduces the number of open file
-    descriptors required, which allows more files to be accessed.
+    descriptors required, which allows more files to be accessed without
+    adjusting process/user resource limits.
 
     Files are 'opened' and 'closed' via the cache in order to track how many
-    references to an entry are active. When an entry has no references, it
-    is eligible to be removed by 'sweeping' the cache. This should be done a
-    regular interval to keep the meta data fresh, but long enough to make
-    the cache useful.
+    references to an entry are active (not perl reference counting btw).
+    When an entry has no references, it is eligible to be removed by
+    'sweeping' the cache. This should be done a regular interval to keep the
+    meta data fresh, but long enough to make the cache useful. To make this
+    module event system agnostic it is up to the user to implement a timer
+    that calls the "sweep" API.
 
     Importantly, a entry only uses a single file descriptor per file.
-    Multiple uses of the same entry must track their own file position. When
-    doing IO on the file, appropriate calls to "seek" (or "pread"/"pwrite"
-    via "IO::FD") will need to be performed to set the position for correct
-    IO operation.
+    Multiple users of the same entry must track their own file positions.
+    When doing IO on the file, appropriate calls to "seek" (or
+    "pread"/"pwrite" via "IO::FD") will need to be performed to set the
+    position for correct IO operation.
 
     Each cached entry contains a "user_" field, which allows the user to
     store associated meta data with the entry. For example this could be
@@ -60,18 +74,23 @@ DESCRIPTION
     etag, modification headers, etc), which only need to be computed when
     the file was opened.
 
+    Note this module is tuned for performance rather than nice programming
+    style. Thus fields within a cache entry are accessible by their position
+    in an array instead of a nice hash name or accessor methods.
+
 API
-    An OO API is provided for configuration and ease of use and a functional
-    API for best performance.
+    An OO API is provided for configuration and ease of use and an
+    additional functional API for best performance for high frequency
+    access.
 
   Cache entry
-    A cache entry is an anonymous array with the following fields
+    A cache entry is an anonymous array with the following fields:
 
      key_ fd_ fh_ stat_ valid_ user_
       0    1   2    3     4      5
 
-    This are constants defined starting from 0 to 4, which can be used as
-    indexes into the array.
+    This are constants defined in the "File::Meta::Cache" package, which can
+    be used as indexes into the array.
 
    key_ (=0)
     The key to the cache table, which is the file path used when calling the
@@ -104,21 +123,34 @@ API
    new
       my $fmc = File::Meta::Cache->new;
 
-    Returns a new File::Meta::Cache object. Each object contains its own.
+    Returns a new File::Meta::Cache object. Each object is a unique cache
+    and does not share entries with other cache objects.
 
    open
       my $entry=$fmc->open($file_path, [$mode, $force]);
 
-    Returns the cache entry matching the file path given. If the file was
-    not found returns "undef".
+    Attempts to find the file path in the cache and return the existing
+    entry. If it is found, the reference count of the cache entry is
+    incremented and the entry returned.
+
+    If no entry was found, a stat of the given file path is performed. If
+    successful, creates an cache entry to store the stat information. The
+    file is then opened and a file handle created if required. The handle
+    and the backing file descriptor are added to the cache entry.
+
+    If the cache is enabled, the entry is added to the cache.
+
+    The entry (array ref) is returned on success, or "undef" is returned if
+    the file could not be opened.
 
     $mode specifies the open mode flags as per the open (2) system call. If
-    undefined or not specified the default value of "O_RDONLY" is used;
+    undefined or not specified the default value of "O_RDONLY" is used.
 
     $force will force the file to be reopened to the same file descriptor
-    currently used for the file. This performs the stat on the file and
-    updates the cache entry accordingly. The cache entry is still considered
-    valid.
+    currently used for the file. This will force another "stat" on the file
+    and updates the cache entry accordingly. The cache entry is still
+    considered valid and file the file descriptor and file handle are
+    unchanged.
 
    close
       $fmc->close($entry,[$force]);
@@ -156,8 +188,8 @@ API
     fails, it invalidates the cache entry.
 
   High Performance API
-    These methods bypass the slow OO lookup but providing a code reference
-    to directly open, close and sweep cache entries.
+    These methods bypass the slow OO lookup by providing a code reference to
+    directly open, close and sweep cache entries.
 
    opener
         my $opener_sub=$object->opener;
@@ -165,18 +197,24 @@ API
     Returns the code reference which actually performs cache lookup, file
     opening required and 'reference count incrementing'.
 
-    The returned code reference takes the same arguements as the "open"
+    The returned code reference takes the same arguments as the "open"
     method.
 
+      eg:
+        my $entry=$opener_sub->("path to file");
+
    sweeper
-      $object->sweeper;
+      my $sweeper_sub=$object->sweeper;
 
     Returns the code reference which actually performs cache sweep, of
     unused cache entries. The returned code reference takes the same
     arguments as the "sweep" method.
 
+      eg:
+        $sweeper_sub->();
+
    closer
-      $object->closer;
+      my $closer_sub=$object->closer;
 
     Returns the code reference which actually performs 'reference count
     decrementing' and closes the file if needed.
@@ -184,8 +222,11 @@ API
     The returned code reference takes the same arguments as the "close"
     method.
 
+      eg:
+        $closer_sub->($entry);
+
    updater
-      $object->updater
+      my $updater_sub=$object->updater;
 
     Returns the code reference which actually performs updating of a cache
     entry.
@@ -193,10 +234,23 @@ API
     The returned code reference takes the same arguments as the "update"
     method.
 
-SEE ALSO
-    Yet another template module right?
+      eg $updater_sub->($entry);
 
-    Do a search on CPAN for 'template' and make a cup of coffee.
+PERFORMANCE
+    Once a file is open, subsequent opens are only a hash lookup. No open or
+    stat call is issued.
+
+    Note that unless the rest of your application is written to handle high
+    frequency access to the files of interest, this module will give only
+    modest performance improvements.
+
+    TODO - more details and an actual benchmark.
+
+SEE ALSO
+    There is a PSGI specific module Plack::Middleware::Static::OpenFileCache
+    which provides similar functionality. The invalidating of an entry in
+    the cache if significantly different. Also this module allows for both
+    read and write access to an open file.
 
 REPOSITORY and BUG REPORTING
     Please report any bugs and feature requests on the repo page: GitHub
