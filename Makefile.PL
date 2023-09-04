@@ -6,7 +6,6 @@ WriteMakefile(
   NAME              => 'File::Meta::Cache',
   VERSION_FROM      => 'lib/File/Meta/Cache.pm', 
   PREREQ_PM         => {
-    enum=>0,
     "Object::Pad"=>"0.78",
     "Log::OK"=>0,
     "Log::ger"=>0,
