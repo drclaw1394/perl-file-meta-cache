@@ -1,0 +1,10 @@
+Changes
+lib/File/Meta/Cache.pm
+lib/File/Meta/Cache.pod
+LICENSE
+Makefile.PL
+MANIFEST
+MANIFEST.SKIP
+README
+README.md
+t/File-Meta-Cache.t

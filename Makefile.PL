@@ -9,7 +9,9 @@ WriteMakefile(
     enum=>0,
     "Object::Pad"=>"0.78",
     "Log::OK"=>0,
-    "Log::ger"=>0
+    "Log::ger"=>0,
+    "constant::more"=>0,
+
   }, 
   ABSTRACT_FROM     => 'lib/File/Meta/Cache.pod', 
   AUTHOR            => 'Ruben Westerberg <drclaw@local>',
