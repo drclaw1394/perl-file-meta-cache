@@ -49,8 +49,12 @@ $cache->close($entry2);
 # Ref count should now be 1.
 ok $entry->[File::Meta::Cache::valid_]==1, "Reference count";
 
+# But entry should still exist int table
+ok defined $cache->info($file[0]), "Invalidated fds, but info exists";
+
 # This should remove the entry
 $cache->sweep;
+ok ! defined $cache->info($file[0]), "Item swept from  cache";
 
 ok $entry->[File::Meta::Cache::valid_]==0, "Entry invalidated";
 

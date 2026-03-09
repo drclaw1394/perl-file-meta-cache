@@ -8,6 +8,7 @@ WriteMakefile(
     "Log::OK"=>"v0.2.1",
     "Log::ger"=>0,
     "constant::more"=>"v0.3.0",
+    "File::Path::Redirect" => 0,
 
   }, 
   ABSTRACT_FROM     => 'lib/File/Meta/Cache.pod', 
