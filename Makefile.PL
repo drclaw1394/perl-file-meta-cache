@@ -3,7 +3,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
   NAME              => 'File::Meta::Cache',
   VERSION_FROM      => 'lib/File/Meta/Cache.pm', 
-	MIN_PERL_VERSION => '5.24',
+	MIN_PERL_VERSION => '5.24.0',
   PREREQ_PM         => {
     "Object::Pad"=>"0.808",
     "constant::more"=>"v0.3.0",
