@@ -8,11 +8,9 @@ our $VERSION="v0.4.0";
 use Fcntl qw(O_RDONLY);
 use File::Path::Redirect qw<follow_redirect>;
 
-# NOTE: This contants will be depricated in a later version
-use constant::more key_=>0, fd_=>1, fh_=>2, stat_=>3, valid_=>4, user_=>5;
 
 # Use these keys instead
-use constant::more qw<KEY=0 FD FH STAT VALID USER>;
+use constant::more qw<KEY=0 PATH FD FH STAT VALID USER>;
 
 use Object::Pad;
 
@@ -95,15 +93,20 @@ method opener{
     if(!$existing_entry or $force){
         Log::OK::TRACE and log_trace __PACKAGE__.": Searching for: $KEYpath";
 
+        my @entry;
         my $path;
         if($enable_redirect){
           # Attempt to redirect file if appropriate
           $path=follow_redirect $KEYpath;
+          $entry[PATH]=$path;
+
         }
         else {
           $path=$KEYpath;
 
         }
+
+        $entry[PATH]=$path;
         my @stat=stat $path;  #$KEYpath;
         
         # If the stat fail or is not a file return undef.
@@ -114,7 +117,6 @@ method opener{
           return undef;
         };
 
-        my @entry;
         $in_fd=$_open->($path, $mode);
         
 
