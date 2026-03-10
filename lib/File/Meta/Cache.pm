@@ -5,9 +5,10 @@ package File::Meta::Cache;
 our $VERSION="v0.4.0";
 
 # Default Opening Mode
+#
+
 use Fcntl qw(O_RDONLY);
 use File::Path::Redirect qw<follow_redirect>;
-
 
 # Use these keys instead
 use constant::more qw<KEY=0 PATH FD FH STAT VALID USER>;
@@ -17,24 +18,30 @@ use Object::Pad;
 class File::Meta::Cache;
 use feature qw<say state>;
 
-use uSAC::Log;   # Logger
-use Log::OK;    # Logger enabler
+#use uSAC::Log;   # Logger
+#use Log::OK;    # Logger enabler
 
 
 
 my ($_open, $_close, $_dup2);
 
-if(eval "require IO::FD"){
-  $_open=\&IO::FD::open;
-  $_close=\&IO::FD::close;
-  $_dup2=\&IO::FD::dup2;
-}
-else {
-  require POSIX;
-  $_open=\&POSIX::open;
-  $_close=\&POSIX::close;
-  $_dup2=\&POSIX::dup2;
-}
+##############################
+# if(eval "require IO::FD"){ #
+#   $_open=\&IO::FD::open;   #
+#   $_close=\&IO::FD::close; #
+#   $_dup2=\&IO::FD::dup2;   #
+# }                          #
+# else {                     #
+#   require POSIX;           #
+#   $_open=\&POSIX::open;    #
+#   $_close=\&POSIX::close;  #
+#   $_dup2=\&POSIX::dup2;    #
+# }                          #
+##############################
+require POSIX;
+$_open=\&POSIX::open;
+$_close=\&POSIX::close;
+$_dup2=\&POSIX::dup2;
 
 
 
@@ -91,7 +98,7 @@ method opener{
     my $existing_entry=$_cache{$KEYpath};
     $mode//=O_RDONLY;
     if(!$existing_entry or $force){
-        Log::OK::TRACE and log_trace __PACKAGE__.": Searching for: $KEYpath";
+      #Log::OK::TRACE and log_trace __PACKAGE__.": Searching for: $KEYpath";
 
         my @entry;
         my $path;
@@ -150,7 +157,7 @@ method opener{
           }
         }
         else {
-          Log::OK::ERROR and log_error __PACKAGE__." Error opening file $KEYpath: $!";
+          #Log::OK::ERROR and log_error __PACKAGE__." Error opening file $KEYpath: $!";
         }
     }
     else {
@@ -182,10 +189,10 @@ method disable{
 #
 method closer {
   $_closer//=sub {
-      Log::OK::TRACE and log_trace ("FMC closer called");
+    #Log::OK::TRACE and log_trace ("FMC closer called");
       my $entry=$_[0];
       if(--$entry->[VALID] <=0 or $_[1]){
-        Log::OK::TRACE and log_trace ("FMC closer valid 0 or lesss, or maybe force flag");
+        #Log::OK::TRACE and log_trace ("FMC closer valid 0 or lesss, or maybe force flag");
         # Delete from cache
         delete $_cache{$entry->[KEY]};
         # Attempt to close only if the entry exists
